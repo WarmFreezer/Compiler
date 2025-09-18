@@ -1,5 +1,6 @@
 #pragma once
 
+#include <variant>
 #include <vector>
 #include <iostream>
 
@@ -7,14 +8,40 @@
 
 using namespace std;
 
-struct Expr
+struct ExprIntLit
 {
     Token int_lit;
 };
 
-struct Exit
+struct ExprId
+{
+    Token id;
+};
+
+struct Expr
+{
+    variant<ExprIntLit, ExprId> var;
+};
+
+struct StmtExit
 {
     Expr expr;
+};
+
+struct StmtLet
+{
+    Token id;
+    Expr expr;
+};
+
+struct Stmt
+{
+    variant<StmtExit, StmtLet> var;
+};
+
+struct Prgm
+{
+    vector<Stmt> stmts;
 };
 
 class Parser
@@ -26,56 +53,117 @@ class Parser
         {
             if (peek().has_value() && peek().value().type == TokenType::int_lit)
             {
-                return Expr{.int_lit = Consume()};
+                return Expr{.var = ExprIntLit {.int_lit = Consume()}};
+            }
+            else if (peek().has_value() && peek().value().type == TokenType::id) 
+            {
+                return Expr{.var = ExprId {.id = Consume()}};
+            }
+            else
+            {
+                return {};
             }
         }
 
-        optional<Exit> Parse()
+        optional<Stmt> ParseStmt()
         {
-            optional<Exit> exitNode;
-            while(peek().has_value())
+            if 
+            (
+                peek().value().type == TokenType::exit 
+                && peek(1).value().type == TokenType::open_paren
+            )
             {
-                if 
-                (
-                    peek().value().type == TokenType::exit 
-                    && peek(1).value().type == TokenType::open_paren
-                )
+                Consume();
+                Consume();
+
+                StmtExit stmtExit;
+
+                if (auto nodeExpr = ParseExpr())
+                {
+                    stmtExit = StmtExit{.expr = nodeExpr.value()};
+                }
+                else
+                {
+                    cerr << "Invalid expression" << endl;
+                    exit(EXIT_FAILURE);
+                }
+                
+                if(peek().has_value() && peek().value().type == TokenType::close_paren)
                 {
                     Consume();
-                    Consume();
-                    if (auto nodeExpr = ParseExpr())
-                    {
-                        exitNode = Exit{.expr = nodeExpr.value()};
-                    }
-                    else
-                    {
-                        cerr << "Invalid expression" << endl;
-                        exit(EXIT_FAILURE);
-                    }
-                    
-                    if(peek().has_value() && peek().value().type == TokenType::close_paren)
-                    {
-                        Consume();
-                    }
-                    else
-                    {
-                        cerr  << "Expected a \")\"" << endl;
-                        exit(EXIT_FAILURE);
-                    }
+                }
+                else
+                {
+                    cerr  << "Expected a \")\"" << endl;
+                    exit(EXIT_FAILURE);
+                }
 
-                    if (peek().has_value() && peek().value().type == TokenType::period)
-                    {
-                        Consume();
-                    }
-                    else
-                    {
-                        cerr << "Expected a \".\"" << endl;
-                        exit(EXIT_FAILURE);
-                    }
+                if (peek().has_value() && peek().value().type == TokenType::period)
+                {
+                    Consume();
+                }
+                else
+                {
+                    cerr << "Expected a \".\"" << endl;
+                    exit(EXIT_FAILURE);
+                }
+
+                return Stmt {.var = stmtExit};
+            }
+            else if 
+            (
+                peek().has_value() && peek().value().type == TokenType::let && 
+                peek(1).has_value() && peek(1).value().type == TokenType::id &&
+                peek(2).has_value() && peek(2).value().type == TokenType::assign
+            )
+            {
+                Consume();
+                StmtLet stmt_let = StmtLet{.id = Consume()};
+                Consume();
+                if (auto expr = ParseExpr())
+                {
+                    stmt_let.expr = expr.value();
+                }
+                else
+                {
+                    cerr << "Invalid Expression: Expected an expr" << endl;
+                    exit(EXIT_FAILURE);
+                }
+
+                if (peek().has_value() && peek().value().type == TokenType::period)
+                {
+                    Consume();
+                }
+                else
+                {
+                    cerr << "Expected a ." << endl;
+                    exit(EXIT_FAILURE);
+                }
+
+                return Stmt {.var = stmt_let};
+            }
+            else
+            {
+                return {};
+            }
+        }
+
+        optional<Prgm> ParsePrgm()
+        {
+            Prgm prgm;
+            while (peek().has_value())
+            {
+                if (auto stmt = ParseStmt())
+                {
+                    prgm.stmts.push_back(stmt.value());
+                }
+                else
+                {
+                    cerr << "Invalid Expression. Expected a statement";
+                    exit(EXIT_FAILURE);
                 }
             }
-            index = 0;
-            return exitNode;
+            return prgm;
         }
 
     private:

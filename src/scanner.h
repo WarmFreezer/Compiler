@@ -9,9 +9,12 @@ using namespace std;
 //Types of tokens
 enum class TokenType
 {
+    id,
+    let, 
     exit,
-    int_lit, 
+    assign,
     period,
+    int_lit, 
     open_paren,
     close_paren
 };
@@ -51,11 +54,17 @@ class Scanner
                         buffer = "";
                         continue;
                     }
+                    else if (buffer == "let")
+                    {
+                        tokens.push_back({.type = TokenType::let});
+                        buffer = "";
+                        continue;
+                    }
                     else
                     {
-                        cerr << "Invalid Token";
-                        cerr << "Place 1";
-                        exit(EXIT_FAILURE);
+                        tokens.push_back({.type = TokenType::id});
+                        buffer = "";
+                        continue;
                     }
                 }
                 else if (isdigit(peek().value()))
@@ -85,6 +94,12 @@ class Scanner
                 {
                     Consume();
                     tokens.push_back({.type = TokenType::period});
+                    continue;
+                }
+                else if (peek().value() == '=')
+                {
+                    Consume();
+                    tokens.push_back({.type = TokenType::assign});
                     continue;
                 }
                 else if (isspace(peek().value()))

@@ -16,7 +16,6 @@ using namespace std;
 
 enum class TokenType;
 struct Token;
-string Analyze(const vector<Token>& tokens);
 
 int main(int argc, char* argv[])
 {
@@ -37,11 +36,14 @@ int main(int argc, char* argv[])
     //Turn string into tokens
     string contents = contentsStream.str();
 
+    //Scan
     Scanner scanner = Scanner(contents);
     vector<Token> tokens = scanner.Scan(); //<--
-     
+    cout << endl;
+
+    //Parse
     Parser parser = Parser(tokens);
-    optional<Exit> tree = parser.Parse();
+    optional<Prgm> tree = parser.ParsePrgm();
 
     if (!tree.has_value())
     {
@@ -49,9 +51,11 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+    //Generate
     Generator generator(tree.value());
+    //Output to asm file
     fstream assembly("/home/dev/Compiler/out.asm", ios::out);
-    assembly << generator.Generate(); 
+    assembly << generator.GeneratePrgm(); 
     assembly.close();
 
     system("nasm -felf64 out.asm");
