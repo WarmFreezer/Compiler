@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 
 #include "parser.h"
 
@@ -22,14 +23,32 @@ class Generator
                 GenerateStmt(stmt);
             }
             
+            out << "    mov rax, 0\n";
+            Push("rax");
+            out << "    mov rax, 60\n";
+            Pop("rdi");
             out << "    syscall\n";
 
             return out.str();
         }
 
     private:
-        const Prgm prgm;
-        stringstream out;
+        struct Var 
+        {   
+            size_t stackLoc;
+        };
+
+        void Push(const string reg)
+        {
+            out << "    push " << reg << endl;
+            stackSize++;
+        }
+
+        void Pop(const string reg)
+        {
+            out << "    pop " << reg << endl;
+            stackSize--;
+        }
 
         void GenerateStmt(const Stmt& stmt) 
         {
@@ -41,13 +60,21 @@ class Generator
                 {
                     generator.GenerateExpr(stmtExit.expr);
                     generator.out << "    mov rax, 60\n";
-                    generator.out << "    pop rdi\n";
+                    generator.Pop("rdi");
+                    generator.out << "    syscall\n";
                 }
 
                 void operator()(const StmtLet stmtLet)
                 {
-
-                }
+                    if (generator.vars.contains(stmtLet.id.val.value()))
+                    {
+                        cerr << "Identifier already used: " << stmtLet.id.val.value() << endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    
+                    generator.vars.insert({stmtLet.id.val.value(), Var {.stackLoc = generator.stackSize}});
+                    generator.GenerateExpr(stmtLet.expr);
+                }    
             };
 
             StmtVisitor visitor(*this);
@@ -63,16 +90,29 @@ class Generator
                 void operator()(const ExprIntLit exprIntLit) 
                 {
                     generator.out << "    mov rax, " << exprIntLit.int_lit.val.value() << endl;
-                    generator.out << "    push rax\n";
+                    generator.Push("rax");
                 }
 
                 void operator()(const ExprId exprId) 
                 {
+                    if (!generator.vars.contains(exprId.id.val.value()))
+                    {
+                        cerr << "Undeclared Identifier" << exprId.id.val.value() << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     
+                    const auto& var = generator.vars.at(exprId.id.val.value());
+
+                    generator.Push("QWORD [rsp + " + to_string((generator.stackSize - var.stackLoc - 1) * 8)  + "]");
                 }
             };
 
             ExprVisitor visitor(*this);
             visit(visitor, expr.var);
         }
+
+        const Prgm prgm;
+        stringstream out;
+        size_t stackSize = 0;
+        unordered_map<string, Var> vars;
 };

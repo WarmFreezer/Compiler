@@ -51,11 +51,11 @@ class Parser
 
         optional<Expr> ParseExpr()
         {
-            if (peek().has_value() && peek().value().type == TokenType::int_lit)
+            if (Peek().has_value() && Peek().value().type == TokenType::int_lit)
             {
                 return Expr{.var = ExprIntLit {.int_lit = Consume()}};
             }
-            else if (peek().has_value() && peek().value().type == TokenType::id) 
+            else if (Peek().has_value() && Peek().value().type == TokenType::id) 
             {
                 return Expr{.var = ExprId {.id = Consume()}};
             }
@@ -69,8 +69,8 @@ class Parser
         {
             if 
             (
-                peek().value().type == TokenType::exit 
-                && peek(1).value().type == TokenType::open_paren
+                Peek().value().type == TokenType::exit 
+                && Peek(1).value().type == TokenType::open_paren
             )
             {
                 Consume();
@@ -88,7 +88,7 @@ class Parser
                     exit(EXIT_FAILURE);
                 }
                 
-                if(peek().has_value() && peek().value().type == TokenType::close_paren)
+                if(Peek().has_value() && Peek().value().type == TokenType::close_paren)
                 {
                     Consume();
                 }
@@ -98,7 +98,7 @@ class Parser
                     exit(EXIT_FAILURE);
                 }
 
-                if (peek().has_value() && peek().value().type == TokenType::period)
+                if (Peek().has_value() && Peek().value().type == TokenType::period)
                 {
                     Consume();
                 }
@@ -112,9 +112,9 @@ class Parser
             }
             else if 
             (
-                peek().has_value() && peek().value().type == TokenType::let && 
-                peek(1).has_value() && peek(1).value().type == TokenType::id &&
-                peek(2).has_value() && peek(2).value().type == TokenType::assign
+                Peek().has_value() && Peek().value().type == TokenType::let && 
+                Peek(1).has_value() && Peek(1).value().type == TokenType::id &&
+                Peek(2).has_value() && Peek(2).value().type == TokenType::assign
             )
             {
                 Consume();
@@ -130,7 +130,7 @@ class Parser
                     exit(EXIT_FAILURE);
                 }
 
-                if (peek().has_value() && peek().value().type == TokenType::period)
+                if (Peek().has_value() && Peek().value().type == TokenType::period)
                 {
                     Consume();
                 }
@@ -151,7 +151,7 @@ class Parser
         optional<Prgm> ParsePrgm()
         {
             Prgm prgm;
-            while (peek().has_value())
+            while (Peek().has_value())
             {
                 if (auto stmt = ParseStmt())
                 {
@@ -167,7 +167,7 @@ class Parser
         }
 
     private:
-        [[nodiscard]] inline optional<Token> peek(int amount = 0) const 
+        [[nodiscard]] inline optional<Token> Peek(int amount = 0) const 
         {
             optional<Token> returnMe;
 

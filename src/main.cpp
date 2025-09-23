@@ -10,6 +10,7 @@
 
 //Possible improvements:
 // Parallelize compilation by splitting statements by line
+// Use machine learning to identify semantic errors
 
 // cmake --build build && ./build/cat ./test.cat
 using namespace std;

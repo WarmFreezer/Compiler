@@ -62,7 +62,7 @@ class Scanner
                     }
                     else
                     {
-                        tokens.push_back({.type = TokenType::id});
+                        tokens.push_back({.type = TokenType::id, .val = buffer});
                         buffer = "";
                         continue;
                     }
